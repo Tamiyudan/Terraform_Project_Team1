@@ -118,7 +118,7 @@ module "asg" {
   source  = "terraform-aws-modules/autoscaling/aws"
   version = "6.5.3"
   # Autoscaling group
-  name                      = "project-asg"
+  name                      = "project-team1"
   min_size                  = 3
   max_size                  = 10
   desired_capacity          = 3
@@ -216,3 +216,27 @@ module "alb" {
   ]
 }
 
+
+# resource "aws_route53_record" "alias_route53_record" {
+#   zone_id = var.zone_id # zone-id variable
+#   name    = "wordpress.${var.domain}" #  name/domain/subdomain variable
+#   type    = "CNAME"
+#   ttl     = 300
+#   records = [module.alb.lb_dns_name]
+# }
+
+resource "aws_route53_record" "alias_route53_record" {
+  zone_id = var.zone_id # Replace with your zone ID
+  name    = "web.${var.domain}" # Replace with your name/domain/subdomain
+  type    = "A"
+
+  alias {
+    name                   = module.alb.lb_dns_name
+    zone_id                = module.alb.lb_zone_id
+    evaluate_target_health = true
+  }
+}
+
+
+variable zone_id{}
+variable domain{}
