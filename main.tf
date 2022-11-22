@@ -125,6 +125,7 @@ module "asg" {
   wait_for_capacity_timeout = 0
   vpc_zone_identifier       = [for subnet in aws_subnet.public_subnets : subnet.id]
   health_check_type         = "EC2"
+  depends_on     = [module.alb]
 
 
 
