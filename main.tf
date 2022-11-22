@@ -92,7 +92,7 @@ resource "aws_route_table_association" "private" {
 resource "aws_internet_gateway" "internet_gateway" {
   vpc_id = aws_vpc.vpc.id
   tags = {
-    Name = "Project_igw"
+    Name = "project_igw"
   }
 }
 #Create EIP for NAT Gateway
@@ -100,7 +100,7 @@ resource "aws_eip" "nat_gateway_eip" {
   vpc        = true
   depends_on = [aws_internet_gateway.internet_gateway]
   tags = {
-    Name = "Project_igw_eip"
+    Name = "project_igw_eip"
   }
 }
 #Create NAT Gateway
@@ -109,7 +109,7 @@ resource "aws_nat_gateway" "nat_gateway" {
   allocation_id = aws_eip.nat_gateway_eip.id
   subnet_id     = aws_subnet.public_subnets["public_subnet_1"].id
   tags = {
-    Name = "Project_nat_gateway"
+    Name = "project_nat_gateway"
   }
 }
 
@@ -118,7 +118,7 @@ module "asg" {
   source  = "terraform-aws-modules/autoscaling/aws"
   version = "6.5.3"
   # Autoscaling group
-  name                      = "Project-asg"
+  name                      = "project-asg"
   min_size                  = 3
   max_size                  = 10
   desired_capacity          = 3
@@ -130,7 +130,7 @@ module "asg" {
 
 
   # Launch template
-  launch_template_name        = "Project-tmp"
+  launch_template_name        = "project-tmp"
   launch_template_description = "Project Launch template "
   update_default_version      = true
   image_id                    = "ami-0b0dcb5067f052a63"
@@ -146,7 +146,7 @@ module "asg" {
 
 
 resource "aws_security_group" "allow_tls" {
-  name        = "terraform-testing-alb"
+  name        = "project-security-group"
   description = "Allow TLS inbound traffic"
   vpc_id = aws_vpc.vpc.id
 
