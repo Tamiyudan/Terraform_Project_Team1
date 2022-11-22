@@ -10,7 +10,7 @@ resource "aws_vpc" "vpc" {
   cidr_block = var.vpc_cidr
   tags = {
     Name        = var.vpc_name
-    Environment = "project_environment"
+    Environment = "Project_environment"
     Terraform   = "true"
   }
 }
@@ -56,7 +56,7 @@ resource "aws_route_table" "public_route_table" {
     #nat_gateway_id = aws_nat_gateway.nat_gateway.id
   }
   tags = {
-    Name      = "project_public_route_table"
+    Name      = "Project_public_route_table"
     Terraform = "true"
   }
 }
@@ -70,7 +70,7 @@ resource "aws_route_table" "private_route_table" {
     nat_gateway_id = aws_nat_gateway.nat_gateway.id
   }
   tags = {
-    Name      = "project_private_route_table"
+    Name      = "Project_private_route_table"
     Terraform = "true"
   }
 }
@@ -92,7 +92,7 @@ resource "aws_route_table_association" "private" {
 resource "aws_internet_gateway" "internet_gateway" {
   vpc_id = aws_vpc.vpc.id
   tags = {
-    Name = "project_igw"
+    Name = "Project_igw"
   }
 }
 #Create EIP for NAT Gateway
@@ -100,7 +100,7 @@ resource "aws_eip" "nat_gateway_eip" {
   vpc        = true
   depends_on = [aws_internet_gateway.internet_gateway]
   tags = {
-    Name = "project_igw_eip"
+    Name = "Project_igw_eip"
   }
 }
 #Create NAT Gateway
@@ -109,7 +109,7 @@ resource "aws_nat_gateway" "nat_gateway" {
   allocation_id = aws_eip.nat_gateway_eip.id
   subnet_id     = aws_subnet.public_subnets["public_subnet_1"].id
   tags = {
-    Name = "project_nat_gateway"
+    Name = "Project_nat_gateway"
   }
 }
 
@@ -118,7 +118,7 @@ module "asg" {
   source  = "terraform-aws-modules/autoscaling/aws"
   version = "6.5.3"
   # Autoscaling group
-  name                      = "project-asg"
+  name                      = "Project-asg"
   min_size                  = 3
   max_size                  = 10
   desired_capacity          = 3
@@ -130,8 +130,8 @@ module "asg" {
 
 
   # Launch template
-  launch_template_name        = "example-asg"
-  launch_template_description = "Launch template example"
+  launch_template_name        = "Project-tmp"
+  launch_template_description = "Project Launch template "
   update_default_version      = true
   image_id                    = "ami-0b0dcb5067f052a63"
   instance_type               = "t3.micro"
@@ -188,7 +188,7 @@ resource "aws_security_group" "allow_tls" {
 module "alb" {
   source             = "terraform-aws-modules/alb/aws"
   version            = "~> 8.0"
-  name               = "my-alb"
+  name               = "Project-alb"
   load_balancer_type = "application"
   enable_cross_zone_load_balancing = true
   vpc_id             = aws_vpc.vpc.id
