@@ -3,9 +3,3 @@
 
 zone_id = "Your DNS Zone ID"
 domain  = "Your DNS Domain Name"
-
-#WP Database 
-
-database_name     = "Your database name"
-database_user     = "Your database user"
-database_password = "Your database password"
