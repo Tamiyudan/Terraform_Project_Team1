@@ -298,6 +298,19 @@ resource "aws_security_group" "RDS_allow_rule" {
 
 # Create Wordpress Database
 
+resource "random_string" "rds_password" {
+  length  = 10
+  special = false
+}
+
+
+resource "random_string" "suffix" {
+  length  = 4
+  special = false
+}
+
+
+
 resource "aws_db_instance" "wordpressdb" {
   allocated_storage      = 10
   engine                 = "mysql"
@@ -307,7 +320,7 @@ resource "aws_db_instance" "wordpressdb" {
   vpc_security_group_ids = ["${aws_security_group.RDS_allow_rule.id}"]
   db_name                = var.database_name
   username               = var.database_user
-  password               = var.database_password
+  password               = random_string.rds_password.result
   skip_final_snapshot    = true
 
   # make sure rds manual password change is ignored
@@ -326,7 +339,7 @@ data "template_file" "user_data" {
   template = file("user_data.sh")
   vars = {
     db_username      = var.database_user
-    db_user_password = var.database_password
+    db_user_password = random_string.rds_password.result
     db_name          = var.database_name
     db_RDS           = aws_db_instance.wordpressdb.endpoint
   }
@@ -358,6 +371,10 @@ resource "aws_route53_record" "alias_route53_record" {
 
 output "RDS-Endpoint" {
   value = aws_db_instance.wordpressdb.endpoint
+}
+
+output "rds_password" {
+  value = "${random_string.rds_password.result}"
 }
 
 output "INFO" {
