@@ -1,11 +1,16 @@
 # Configure the AWS Provider
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
 }
 #Retrieve the list of AZs in the current AWS region
 data "aws_availability_zones" "available" {}
 data "aws_region" "current" {}
-#Define the VPC
+
+
+
+
+
+#Create the VPC
 resource "aws_vpc" "vpc" {
   cidr_block = var.vpc_cidr
   tags = {
@@ -14,9 +19,6 @@ resource "aws_vpc" "vpc" {
     Terraform   = "true"
   }
 }
-
-
-
 
 #Deploy the private subnets
 
@@ -32,6 +34,7 @@ resource "aws_subnet" "private_subnets" {
   }
 }
 
+
 #Deploy the public subnets
 resource "aws_subnet" "public_subnets" {
   for_each   = var.public_subnets
@@ -45,6 +48,7 @@ resource "aws_subnet" "public_subnets" {
     Terraform = "true"
   }
 }
+
 
 #Create route tables for public and private subnets
 resource "aws_route_table" "public_route_table" {
@@ -88,6 +92,8 @@ resource "aws_route_table_association" "private" {
   for_each       = aws_subnet.private_subnets
   subnet_id      = each.value.id
 }
+
+
 #Create Internet Gateway
 resource "aws_internet_gateway" "internet_gateway" {
   vpc_id = aws_vpc.vpc.id
@@ -114,41 +120,14 @@ resource "aws_nat_gateway" "nat_gateway" {
 }
 
 
-module "asg" {
-  source  = "terraform-aws-modules/autoscaling/aws"
-  version = "6.5.3"
-  # Autoscaling group
-  name                      = "project-team1"
-  min_size                  = 3
-  max_size                  = 10
-  desired_capacity          = 3
-  wait_for_capacity_timeout = 0
-  vpc_zone_identifier       = [for subnet in aws_subnet.public_subnets : subnet.id]
-  health_check_type         = "EC2"
-  depends_on     = [module.alb]
 
 
-
-  # Launch template
-  launch_template_name        = "project-tmp"
-  launch_template_description = "Project Launch template "
-  update_default_version      = true
-  image_id                    = "ami-0b0dcb5067f052a63"
-  instance_type               = "t3.micro"
-  ebs_optimized               = false
-  enable_monitoring           = false
-  user_data                   = "IyEvYmluL2Jhc2ggCgp5dW0gaW5zdGFsbCBodHRwZCB3Z2V0IHVuemlwIGVwZWwtcmVsZWFzZSBteXNxbCAteSAKCnN1ZG8gYW1hem9uLWxpbnV4LWV4dHJhcyBpbnN0YWxsIGVwZWwgLXkgCgp5dW0gLXkgaW5zdGFsbCBodHRwczovL3JwbXMucmVtaXJlcG8ubmV0L2VudGVycHJpc2UvcmVtaS1yZWxlYXNlLTcucnBtIAoKeXVtLWNvbmZpZy1tYW5hZ2VyIC0tZW5hYmxlIHJlbWktcGhwNzQgCgp5dW0gaW5zdGFsbCBwaHAgLXkgCgp5dW0gaW5zdGFsbCBwaHAtbXlzcWwgLXkgCgogCndnZXQgaHR0cDovL3dvcmRwcmVzcy5vcmcvd29yZHByZXNzLTQuMC4zMi50YXIuZ3ogIAoKIAp0YXIgLXhmIHdvcmRwcmVzcy00LjAuMzIudGFyLmd6IC1DIC92YXIvd3d3L2h0bWwvIAoKbXYgL3Zhci93d3cvaHRtbC93b3JkcHJlc3MvKiAvdmFyL3d3dy9odG1sLyAgCgpHZXRlbmZvcmNlIAoKc2VkICdzL1NFTElOVVg9cGVybWlzc2l2ZS9TRUxJTlVYPWVuZm9yY2luZy9nJyAvZXRjL3N5c2NvbmZpZy9zZWxpbnV4IC1pICAKc2V0ZW5mb3JjZSAwIAogCmNob3duIC1SIGFwYWNoZTphcGFjaGUgL3Zhci93d3cvaHRtbC8gCiAKc3VkbyBzeXN0ZW1jdGwgcmVzdGFydCBodHRwZCAKIApzdWRvIHN5c3RlbWN0bCBlbmFibGUgaHR0cGQg"
-  target_group_arns           = module.alb.target_group_arns
-  security_groups = [
-    aws_security_group.allow_tls.id
-  ]
-}
-
+#Createa security group
 
 resource "aws_security_group" "allow_tls" {
   name        = "project-security-group"
   description = "Allow TLS inbound traffic"
-  vpc_id = aws_vpc.vpc.id
+  vpc_id      = aws_vpc.vpc.id
 
   ingress {
     description = "TLS from VPC"
@@ -166,6 +145,13 @@ resource "aws_security_group" "allow_tls" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "MYSQL"
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   ingress {
     description = "TLS from VPC"
@@ -182,17 +168,66 @@ resource "aws_security_group" "allow_tls" {
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
   }
+
+  tags = {
+    Name      = "Project_security_group_allow"
+    Terraform = "true"
+  }
 }
 
 
+
+
+
+# #Create ASG
+
+
+module "asg" {
+  source  = "terraform-aws-modules/autoscaling/aws"
+  version = "6.5.3"
+  # Autoscaling group
+  name                      = "project-team1"
+  min_size                  = 3
+  max_size                  = 5
+  desired_capacity          = 3
+  wait_for_capacity_timeout = 0
+  vpc_zone_identifier       = [for subnet in aws_subnet.public_subnets : subnet.id]
+  health_check_type         = "EC2"
+  depends_on                = [module.alb]
+
+
+  # Launch template
+  launch_template_name        = "project-tmp"
+  launch_template_description = "Project Launch template "
+  update_default_version      = true
+  image_id                    = "ami-0b0dcb5067f052a63"
+  instance_type               = "t3.micro"
+  ebs_optimized               = false
+  enable_monitoring           = false
+  user_data                   = base64encode(data.template_file.user_data.rendered)
+  target_group_arns           = module.alb.target_group_arns
+  security_groups = [
+    aws_security_group.allow_tls.id
+  ]
+
+  tags = {
+    Name      = "Project_Auto_Scaling_Group"
+    Terraform = "true"
+  }
+}
+
+
+#Create ALB
+
 module "alb" {
-  source             = "terraform-aws-modules/alb/aws"
-  version            = "~> 8.0"
-  name               = "Project-alb"
-  load_balancer_type = "application"
+  source                           = "terraform-aws-modules/alb/aws"
+  version                          = "~> 8.0"
+  name                             = "Project-alb"
+  load_balancer_type               = "application"
   enable_cross_zone_load_balancing = true
-  vpc_id             = aws_vpc.vpc.id
-  subnets = [for subnet in aws_subnet.public_subnets : subnet.id]
+  vpc_id                           = aws_vpc.vpc.id
+  subnets                          = [for subnet in aws_subnet.public_subnets : subnet.id]
+  depends_on                       = [aws_db_instance.wordpressdb]
 
   security_groups = [
     aws_security_group.allow_tls.id
@@ -214,20 +249,100 @@ module "alb" {
       target_group_index = 0
     }
   ]
+  tags = {
+    Name      = "Project_Application_Load_Balancer"
+    Terraform = "true"
+  }
 }
 
 
-# resource "aws_route53_record" "alias_route53_record" {
-#   zone_id = var.zone_id # zone-id variable
-#   name    = "wordpress.${var.domain}" #  name/domain/subdomain variable
-#   type    = "CNAME"
-#   ttl     = 300
-#   records = [module.alb.lb_dns_name]
-# }
+# Create RDS instance
+
+#create subnet group for RDS
+
+resource "aws_db_subnet_group" "RDS_subnet_grp" {
+  subnet_ids = ["${aws_subnet.public_subnets["public_subnet_1"].id}", "${aws_subnet.public_subnets["public_subnet_2"].id}"]
+
+  tags = {
+    Name      = "Project_subnet_group"
+    Terraform = "true"
+  }
+}
+
+#Create security group for RDS
+
+resource "aws_security_group" "RDS_allow_rule" {
+  name        = "project-RDS-security-group"
+  description = "Allow port 3306 from project-security-group"
+  vpc_id      = aws_vpc.vpc.id
+  ingress {
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    security_groups = ["${aws_security_group.allow_tls.id}"]
+  }
+  # Allow all outbound traffic.
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name      = "Project_RDS-security-group"
+    Terraform = "true"
+  }
+
+}
+
+# Create Wordpress Database
+
+resource "aws_db_instance" "wordpressdb" {
+  allocated_storage      = 10
+  engine                 = "mysql"
+  engine_version         = "8.0"
+  instance_class         = var.instance_class
+  db_subnet_group_name   = aws_db_subnet_group.RDS_subnet_grp.id
+  vpc_security_group_ids = ["${aws_security_group.RDS_allow_rule.id}"]
+  db_name                = var.database_name
+  username               = var.database_user
+  password               = var.database_password
+  skip_final_snapshot    = true
+
+  # make sure rds manual password change is ignored
+  lifecycle {
+    ignore_changes = [password]
+  }
+  tags = {
+    Name      = "Project_RDS_Wordpress_Database"
+    Terraform = "true"
+  }
+}
+
+
+# change USERDATA varible value after grabbing RDS endpoint info
+data "template_file" "user_data" {
+  template = file("user_data.sh")
+  vars = {
+    db_username      = var.database_user
+    db_user_password = var.database_password
+    db_name          = var.database_name
+    db_RDS           = aws_db_instance.wordpressdb.endpoint
+  }
+}
+
+
+
+
+
+#Create Route53 DNS record
+
+
 
 resource "aws_route53_record" "alias_route53_record" {
-  zone_id = var.zone_id # Replace with your zone ID
-  name    = "web.${var.domain}" # Replace with your name/domain/subdomain
+  zone_id = var.zone_id               # Replace with your zone ID
+  name    = "wordpress.${var.domain}" # Replace with your name/domain/subdomain
   type    = "A"
 
   alias {
@@ -238,5 +353,22 @@ resource "aws_route53_record" "alias_route53_record" {
 }
 
 
-variable zone_id{}
-variable domain{}
+
+#Outputs
+
+output "RDS-Endpoint" {
+  value = aws_db_instance.wordpressdb.endpoint
+}
+
+output "INFO" {
+  value = "AWS Resources and Wordpress has been provisioned. Go to http://wordpress.${var.domain}"
+}
+
+
+
+
+
+
+
+
+
