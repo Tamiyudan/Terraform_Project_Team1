@@ -34,10 +34,7 @@ variable "database_name" {
   default = "wordpress"
   type    = string
 }
-variable "database_password" {
-  default = "test1234"
-  type    = string
-}
+
 variable "database_user" {
   default = "dbadmin"
   type    = string
