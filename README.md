@@ -17,12 +17,20 @@ Provision Wordpress on AWS using Terraform.
 
 ### AWS Resources created:
 1 x VPC
+
 3 x Private Subnets  
+
 3 x Public Subnets  
+
 1 x Database Subnet Group 
+
 1 x NAT Gateway   
+
 1 x RDS MySQL  
+
 1 x ALB  
+
 1 x ASG
 
-1 x Route53 DNS record  
+1 x Route53 DNS Record
+ 
