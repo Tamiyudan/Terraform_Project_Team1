@@ -9,7 +9,7 @@ Provision Wordpress on AWS using Terraform.
 3. Terraform installed.
 
 ### How to Use:
-1. rename `user.tfvars.sample` to `user.tfvars` and fill in the variables.
+1. rename `user.tfvars.sample` to `terraform.tfvars` and fill in the variables.
 2. `terraform init`
 3. `terraform plan`
 4. `terraform apply`
